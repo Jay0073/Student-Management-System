@@ -109,7 +109,7 @@ $attendance_result = mysqli_query($conn, $attendance_query);
                 <p><strong>Name:</strong> <?php echo $student['name']; ?></p>
                 <p><strong>Email:</strong> <?php echo $student['email']; ?></p>
                 <p><strong>Class:</strong> <?php echo $student['class']; ?></p>
-                
+
             </div>
             <div class="buttons">
                 <button onclick="window.location.href='logout.php'">Logout</button>
@@ -123,19 +123,26 @@ $attendance_result = mysqli_query($conn, $attendance_query);
             <?php if (mysqli_num_rows($attendance_result) > 0): ?>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Status</th>
+                        <tr style="background-color: #0288d1; color: white;">
+                            <th style="padding: 10px; text-align: left;">Date</th>
+                            <th style="padding: 10px; text-align: left;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php while ($attendance = mysqli_fetch_assoc($attendance_result)): ?>
-                            <tr>
-                                <td><?php echo $attendance['attendance_date']; ?></td>
-                                <td><?php echo $attendance['status']; ?></td>
+                            <tr style="background-color: <?php echo $attendance['status'] == 'Present' ? '#e8f5e9' : '#ffebee'; ?>;">
+                                <td style="padding: 10px;"><?php echo $attendance['attendance_date']; ?></td>
+                                <td style="padding: 10px;">
+                                    <?php if ($attendance['status'] == 'Present'): ?>
+                                        <span style="color: white; background-color: green; padding: 5px 10px; border-radius: 4px;">Present</span>
+                                    <?php else: ?>
+                                        <span style="color: white; background-color: red; padding: 5px 10px; border-radius: 4px;">Absent</span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                         <?php endwhile; ?>
                     </tbody>
+                            
                 </table>
             <?php else: ?>
                 <p class="no-attendance">No attendance records found.</p>
