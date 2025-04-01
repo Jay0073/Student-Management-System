@@ -8,12 +8,20 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
     exit();
 }
 
-// Fetch students and teachers from the database
+// Fetch student and teacher details
 $students_query = "SELECT * FROM students";
 $students_result = mysqli_query($conn, $students_query);
 
 $teachers_query = "SELECT * FROM teachers";
 $teachers_result = mysqli_query($conn, $teachers_query);
+
+// Fetch attendance details grouped by date for students
+$students_attendance_query = "SELECT * FROM attendance WHERE role='student' ORDER BY attendance_date DESC";
+$students_attendance_result = mysqli_query($conn, $students_attendance_query);
+
+// Fetch attendance details grouped by date for teachers
+$teachers_attendance_query = "SELECT * FROM attendance WHERE role='teacher' ORDER BY attendance_date DESC";
+$teachers_attendance_result = mysqli_query($conn, $teachers_attendance_query);
 ?>
 
 <!DOCTYPE html>
@@ -24,22 +32,51 @@ $teachers_result = mysqli_query($conn, $teachers_query);
         body {
             font-family: Arial, sans-serif;
             background-color: #f0f8ff;
+            display: flex;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
+        .sidebar {
+            width: 20%;
             background-color: #0288d1;
             color: white;
+            height: 100vh;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .list {
+            margin-bottom: 40px;
+        }
+
+        .list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .list li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid white;
+        }
+
+        .list li:hover {
+            background-color: #0277bd;
+        }
+
+        .content {
+            width: 80%;
+            padding: 20px;
         }
 
         .tabs {
-            margin-top: 20px;
             display: flex;
-            justify-content: center;
-            gap: 20px;
+            margin-bottom: 20px;
         }
 
         .tab {
@@ -48,6 +85,7 @@ $teachers_result = mysqli_query($conn, $teachers_query);
             border: 1px solid #ccc;
             cursor: pointer;
             border-radius: 4px;
+            margin-right: 10px;
         }
 
         .tab.active {
@@ -56,13 +94,8 @@ $teachers_result = mysqli_query($conn, $teachers_query);
             border: none;
         }
 
-        .content {
-            margin: 20px auto;
-            width: 90%;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        .attendance-table {
+            margin-top: 20px;
         }
 
         table {
@@ -80,117 +113,113 @@ $teachers_result = mysqli_query($conn, $teachers_query);
             text-align: left;
         }
 
-        .filters {
-            margin-bottom: 20px;
-        }
-
-        select {
-            padding: 10px;
-            margin-right: 10px;
-            border-radius: 4px;
-        }
-
-        .logout {
-            background-color: white;
-            color: #0288d1;
-            padding: 10px 15px;
-            border: 1px solid #0288d1;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .logout:hover {
-            background-color: #0277bd;
+        th {
+            background-color: #0288d1;
             color: white;
         }
     </style>
 </head>
 <body>
-    <!-- Header Section -->
-    <div class="header">
-        <h2>Admin Dashboard</h2>
-        <button class="logout" onclick="window.location.href='logout.php'">Logout</button>
-    </div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3>Admin Panel</h3>
 
-    <!-- Tabs Section -->
-    <div class="tabs">
-        <div id="studentsTab" class="tab active" onclick="showTab('students')">Students</div>
-        <div id="teachersTab" class="tab" onclick="showTab('teachers')">Teachers</div>
-    </div>
-
-    <!-- Content Section -->
-    <div id="studentsContent" class="content">
-        <h3>Student Details</h3>
-
-        <!-- Filters -->
-        <div class="filters">
-            <select id="studentClassFilter" onchange="filterTable('studentsTable', 3, this.value)">
-                <option value="">Filter by Class</option>
-                <option value="Class 1">Class 1</option>
-                <option value="Class 2">Class 2</option>
-            </select>
-        </div>
-
-        <!-- Students Table -->
-        <table id="studentsTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Class</th>
-                    <th>Age</th>
-                </tr>
-            </thead>
-            <tbody>
+        <!-- Student List -->
+        <div class="list">
+            <h4>Students</h4>
+            <ul>
                 <?php while ($student = mysqli_fetch_assoc($students_result)): ?>
-                    <tr>
-                        <td><?php echo $student['student_id']; ?></td>
-                        <td><?php echo $student['name']; ?></td>
-                        <td><?php echo $student['email']; ?></td>
-                        <td><?php echo $student['class']; ?></td>
-                        <td><?php echo $student['age']; ?></td>
-                    </tr>
+                    <li><?php echo $student['name']; ?></li>
                 <?php endwhile; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <div id="teachersContent" class="content" style="display: none;">
-        <h3>Teacher Details</h3>
-
-        <!-- Filters -->
-        <div class="filters">
-            <select id="teacherSubjectFilter" onchange="filterTable('teachersTable', 3, this.value)">
-                <option value="">Filter by Subject</option>
-                <option value="Math">Math</option>
-                <option value="Science">Science</option>
-            </select>
+            </ul>
         </div>
 
-        <!-- Teachers Table -->
-        <table id="teachersTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Subject</th>
-                    <th>Phone</th>
-                </tr>
-            </thead>
-            <tbody>
+        <!-- Teacher List -->
+        <div class="list">
+            <h4>Teachers</h4>
+            <ul>
                 <?php while ($teacher = mysqli_fetch_assoc($teachers_result)): ?>
-                    <tr>
-                        <td><?php echo $teacher['teacher_id']; ?></td>
-                        <td><?php echo $teacher['name']; ?></td>
-                        <td><?php echo $teacher['email']; ?></td>
-                        <td><?php echo $teacher['subject']; ?></td>
-                        <td><?php echo $teacher['phone_number']; ?></td>
-                    </tr>
+                    <li><?php echo $teacher['name']; ?></li>
                 <?php endwhile; ?>
-            </tbody>
-        </table>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div id="studentsTab" class="tab active" onclick="showTab('students')">Students</div>
+            <div id="teachersTab" class="tab" onclick="showTab('teachers')">Teachers</div>
+        </div>
+
+        <!-- Students Attendance Content -->
+        <div id="studentsContent" class="attendance-table">
+            <h3>Student Attendance by Date</h3>
+            <?php if (mysqli_num_rows($students_attendance_result) > 0): ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($attendance = mysqli_fetch_assoc($students_attendance_result)): ?>
+                            <tr>
+                                <td>
+                                    <?php 
+                                    $student_query = "SELECT name FROM students WHERE student_id = '{$attendance['user_id']}'";
+                                    $student_name_result = mysqli_query($conn, $student_query);
+                                    $student_name = mysqli_fetch_assoc($student_name_result)['name'];
+                                    echo $student_name;
+                                    ?>
+                                </td>
+                                <td><?php echo $attendance['attendance_date']; ?></td>
+                                <td><?php echo $attendance['status']; ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p>No attendance records found for students.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Teachers Attendance Content -->
+        <div id="teachersContent" class="attendance-table" style="display: none;">
+            <h3>Teacher Attendance by Date</h3>
+            <?php if (mysqli_num_rows($teachers_attendance_result) > 0): ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($attendance = mysqli_fetch_assoc($teachers_attendance_result)): ?>
+                            <tr>
+                                <td>
+                                    <?php 
+                                    $teacher_query = "SELECT name FROM teachers WHERE teacher_id = '{$attendance['user_id']}'";
+                                    $teacher_name_result = mysqli_query($conn, $teacher_query);
+                                    $teacher_name = mysqli_fetch_assoc($teacher_name_result)['name'];
+                                    echo $teacher_name;
+                                    ?>
+                                </td>
+                                <td><?php echo $attendance['attendance_date']; ?></td>
+                                <td><?php echo $attendance['status']; ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p>No attendance records found for teachers.</p>
+            <?php endif; ?>
+        </div>
     </div>
 
     <script>
@@ -210,20 +239,6 @@ $teachers_result = mysqli_query($conn, $teachers_query);
                 teachersTab.classList.add('active');
                 studentsContent.style.display = 'none';
                 teachersContent.style.display = 'block';
-            }
-        }
-
-        function filterTable(tableId, columnIndex, filterValue) {
-            const table = document.getElementById(tableId);
-            const rows = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName('td');
-                if (filterValue === "" || cells[columnIndex].textContent === filterValue) {
-                    rows[i].style.display = '';
-                } else {
-                    rows[i].style.display = 'none';
-                }
             }
         }
     </script>
