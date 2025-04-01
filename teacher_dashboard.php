@@ -1,0 +1,165 @@
+<?php
+session_start();
+require 'php/connection.php';
+
+// Check if the user is logged in and is a teacher
+if (!isset($_SESSION['role']) || $_SESSION['role'] != 'teacher') {
+    header("Location: index.php");
+    exit();
+}
+
+$teacher_id = $_SESSION['user_id'];
+
+// Fetch teacher details
+$teacher_query = "SELECT * FROM teachers WHERE teacher_id='$teacher_id'";
+$teacher_result = mysqli_query($conn, $teacher_query);
+$teacher = mysqli_fetch_assoc($teacher_result);
+
+// Fetch attendance details
+$attendance_query = "SELECT * FROM attendance WHERE user_id='$teacher_id' AND role='teacher'";
+$attendance_result = mysqli_query($conn, $attendance_query);
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+        }
+
+        .container {
+            margin: 20px auto;
+            width: 90%;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .teacher-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .teacher-info {
+            font-size: 18px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .buttons button {
+            padding: 10px 15px;
+            background-color: #0288d1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .buttons button:hover {
+            background-color: #0277bd;
+        }
+
+        .attendance-history {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .no-attendance {
+            text-align: center;
+            font-size: 18px;
+            color: #888;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Teacher Details Section -->
+        <div class="teacher-details">
+            <div class="teacher-info">
+                <p><strong>Name:</strong> <?php echo $teacher['name']; ?></p>
+                <p><strong>Email:</strong> <?php echo $teacher['email']; ?></p>
+                <p><strong>Subject:</strong> <?php echo $teacher['subject']; ?></p>
+            </div>
+            <div class="buttons">
+                <button onclick="window.location.href='logout.php'">Logout</button>
+                <button onclick="markAttendance()">Mark Today's Attendance</button>
+            </div>
+        </div>
+
+        <!-- Attendance History Section -->
+        <div class="attendance-history">
+            <h2>Attendance History</h2>
+            <?php if (mysqli_num_rows($attendance_result) > 0): ?>
+                <table>
+                    <thead>
+                        <tr style="background-color: #0288d1; color: white;">
+                            <th style="padding: 10px; text-align: left;">Date</th>
+                            <th style="padding: 10px; text-align: left;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($attendance = mysqli_fetch_assoc($attendance_result)): ?>
+                            <tr style="background-color: <?php echo $attendance['status'] == 'Present' ? '#e8f5e9' : '#ffebee'; ?>;">
+                                <td style="padding: 10px;"><?php echo $attendance['attendance_date']; ?></td>
+                                <td style="padding: 10px;">
+                                    <?php if ($attendance['status'] == 'Present'): ?>
+                                        <span style="color: white; background-color: green; padding: 5px 10px; border-radius: 4px;">Present</span>
+                                    <?php else: ?>
+                                        <span style="color: white; background-color: red; padding: 5px 10px; border-radius: 4px;">Absent</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p class="no-attendance">No attendance records found.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <script>
+        function markAttendance() {
+            // AJAX request to mark attendance
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "mark_attendance.php", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    alert(xhr.responseText);
+                    location.reload(); // Reload the page to show updated attendance
+                }
+            };
+            xhr.send("user_id=<?php echo $teacher_id; ?>&role=teacher");
+        }
+    </script>
+</body>
+</html>
